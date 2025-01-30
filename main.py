@@ -36,12 +36,12 @@ def get_config(response_body: str) -> Dict[str, Union[str, int]]:
     return {}
 
 
-def initialize_device_auth(client_id: str, scope: str) -> requests.Response:
+def initialize_device_auth(microsoft_azure_cli_client_id: str, scope: str) -> requests.Response:
     """
     Initiates device authorization by sending a POST request to the device authorization endpoint.
 
     Args:
-        client_id (str): The Application (client) ID.
+        client_id (str): The Application (client) ID of Microsoft Azure CLI.
         scope (str): Scope of the requested access.
 
     Returns:
@@ -226,8 +226,9 @@ def get_access_token(client_id: str, device_code: str) -> requests.Response:
 
 email_address = os.environ.get("EMAIL_ADDRESS")
 password = os.environ.get("PASSWORD")
-client_id = os.environ.get("CLIENT_ID")
 totp_secret_key = os.environ.get("TOTP_SECRET_KEY")
+
+microsoft_azure_cli_client_id = os.environ.get("MICROSOFT_AZURE_CLI_CLIENT_ID")
 
 # Select the scope of the Microsoft resource to which you wish to connect
 scope = "https://management.azure.com/.default"
