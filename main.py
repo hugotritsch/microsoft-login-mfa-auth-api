@@ -1,6 +1,7 @@
 import re
 import os
 import json
+import time
 import pyotp
 import requests
 
@@ -36,19 +37,19 @@ def get_config(response_body: str) -> Dict[str, Union[str, int]]:
     return {}
 
 
-def initialize_device_auth(microsoft_azure_cli_client_id: str, scope: str) -> requests.Response:
+def initialize_device_auth(powershell_client_id: str, scope: str) -> requests.Response:
     """
     Initiates device authorization by sending a POST request to the device authorization endpoint.
 
     Args:
-        client_id (str): The Application (client) ID of Microsoft Azure CLI.
+        powershell_client_id (str): The Application (client) ID of Powershell.
         scope (str): Scope of the requested access.
 
     Returns:
         requests.Response: Response object containing the device authorization details.
     """
     url = "https://login.microsoftonline.com/common/oauth2/v2.0/devicecode"
-    payload = {"client_id": client_id, "scope": scope}
+    payload = {"client_id": powershell_client_id, "scope": scope}
     response = session.post(url, data=payload)
     return response
 
@@ -74,7 +75,7 @@ def post_device_auth(user_code: str, canary: Optional[str] = None, params: Optio
     return response
 
 
-def login(email_address: str, password: str, canary: str, contex: str, flow_token: str) -> requests.Response:
+def login(email_address: str, password: str, canary: str, context: str, flow_token: str) -> requests.Response:
     """
     Logs in the user with provided credentials and session data.
 
@@ -82,7 +83,7 @@ def login(email_address: str, password: str, canary: str, contex: str, flow_toke
         email_address (str): The user's email address.
         password (str): The user's password.
         canary (str): Canary token for the session.
-        contex (str): Context ID for the session.
+        context (str): Context ID for the session.
         flow_token (str): Flow token for authentication.
 
     Returns:
@@ -94,14 +95,14 @@ def login(email_address: str, password: str, canary: str, contex: str, flow_toke
         "loginfmt": email_address,
         "passwd": password,
         "canary": canary,
-        "ctx": contex,
+        "ctx": context,
         "flowtoken": flow_token
     }
     response = session.post(url, data=payload)
     return response
 
 
-def begin_multi_factor_auth(user_agent: str, client_request_id: str, auth_method_id: str, api_canary: str, contex: str, flow_token: str,
+def begin_multi_factor_auth(user_agent: str, client_request_id: str, auth_method_id: str, api_canary: str, context: str, flow_token: str,
                hpgact: int, hpgid: int) -> requests.Response:
     """
     Initiates an authentication method for MFA (Multi-Factor Authentication).
@@ -111,7 +112,7 @@ def begin_multi_factor_auth(user_agent: str, client_request_id: str, auth_method
         client_request_id (str): Unique request ID for tracking.
         auth_method_id (str): The method of authentication (e.g., SMS, phone app).
         api_canary (str): Canary token for the session.
-        contex (str): Context ID for the session.
+        context (str): Context ID for the session.
         flow_token (str): Flow token for authentication.
         hpgact (int): HPGACT parameter for tracking.
         hpgid (int): HPGID parameter for tracking.
@@ -131,14 +132,14 @@ def begin_multi_factor_auth(user_agent: str, client_request_id: str, auth_method
     payload = {
         "AuthMethodId": auth_method_id,
         "Method": "BeginAuth",
-        "ctx": contex,
+        "ctx": context,
         "flowToken": flow_token
     }
     response = session.post(url, headers=headers, json=payload)
     return response
 
 
-def end_multi_factor_auth(user_agent: str, client_request_id: str, auth_method_id: str, api_canary: str, contex: str, flow_token: str, hpgact: int, hpgid: int, 
+def end_multi_factor_auth(user_agent: str, client_request_id: str, auth_method_id: str, api_canary: str, context: str, flow_token: str, hpgact: int, hpgid: int, 
              session_id: str, additional_auth_data: Optional[str] = None) -> requests.Response:
     """
     Finalizes the MFA process by sending the user's authentication code.
@@ -173,7 +174,7 @@ def end_multi_factor_auth(user_agent: str, client_request_id: str, auth_method_i
         "AuthMethodId": auth_method_id,
         "Method": "EndAuth",
         "SessionId": session_id,
-        "ctx": contex,
+        "ctx": context,
         "flowToken": flow_token,
         "AdditionalAuthData": additional_auth_data,
         "PollCount": 1
@@ -181,7 +182,7 @@ def end_multi_factor_auth(user_agent: str, client_request_id: str, auth_method_i
     return session.post(url, headers=headers, json=payload)
 
 
-def app_verification(canary: str, contex: str, flow_token: str) -> requests.Response:
+def app_verification(canary: str, context: str, flow_token: str) -> requests.Response:
     """
     Verifies the authentication using app verification method.
 
@@ -196,7 +197,7 @@ def app_verification(canary: str, contex: str, flow_token: str) -> requests.Resp
     url = "https://login.microsoftonline.com/appverify"
     payload = {
         "ContinueAuth": "true",
-        "ctx": contex,
+        "ctx": context,
         "flowToken": flow_token,
         "canary": canary
     }
@@ -228,21 +229,21 @@ email_address = os.environ.get("EMAIL_ADDRESS")
 password = os.environ.get("PASSWORD")
 totp_secret_key = os.environ.get("TOTP_SECRET_KEY")
 
-microsoft_azure_cli_client_id = os.environ.get("MICROSOFT_AZURE_CLI_CLIENT_ID")
+powershell_client_id = "1950a258-227b-4e31-a9cf-717495945fc2"
 
 # Select the scope of the Microsoft resource to which you wish to connect
 scope = "https://management.azure.com/.default"
 
 # Select a MFA authentication type
 #auth_method_id = "OneWaySMS"
-#auth_method_id = "PhoneAppNotification"
+auth_method_id = "PhoneAppNotification"
 #auth_method_id = "TwoWayVoiceMobile"
-auth_method_id = "PhoneAppOTP"
+#auth_method_id = "PhoneAppOTP"
 
 session = requests.Session()
 
 # Initialize Device Authentication
-initialize_device_auth_response = initialize_device_auth(client_id, scope)
+initialize_device_auth_response = initialize_device_auth(powershell_client_id, scope)
 device_code = initialize_device_auth_response.json().get("device_code")
 user_code = initialize_device_auth_response.json().get("user_code")
 
@@ -254,31 +255,66 @@ canary = device_auth_config.get("canary")
 # Send the Device Authentication Code SSO Reload
 post_device_auth_sso_reload_response = post_device_auth(user_code, canary, params={"sso_reload": "true"})
 device_auth_config_sso_reload = get_config(post_device_auth_sso_reload_response.text)
-canary, contex, flow_token = device_auth_config_sso_reload.get("canary"), device_auth_config_sso_reload.get("sCtx"), device_auth_config_sso_reload.get("sFT")
+canary, context, flow_token = device_auth_config_sso_reload.get("canary"), device_auth_config_sso_reload.get("sCtx"), device_auth_config_sso_reload.get("sFT")
 
 # Login
-login_response = login(email_address, password, canary, contex, flow_token)
+login_response = login(email_address, password, canary, context, flow_token)
 login_config = get_config(login_response.text)
-client_request_id, api_canary, contex, flow_token, hpgact, hpgid = login_config.get("correlationId"), login_config.get("apiCanary"), login_config.get("sCtx"), login_config.get("sFT"), login_config.get("hpgact"), login_config.get("hpgid")
+client_request_id, api_canary, context, flow_token, hpgact, hpgid = login_config.get("correlationId"), login_config.get("apiCanary"), login_config.get("sCtx"), login_config.get("sFT"), login_config.get("hpgact"), login_config.get("hpgid")
 
 # Trigger Multi-Factor Authentication
 ua = UserAgent()
 
 ## Begin multi-factor authentication
-begin_multi_factor_auth_response = begin_multi_factor_auth(ua.chrome, client_request_id, auth_method_id, api_canary, contex, flow_token, hpgact, hpgid)
+begin_multi_factor_auth_response = begin_multi_factor_auth(ua.chrome, client_request_id, auth_method_id, api_canary, context, flow_token, hpgact, hpgid)
 begin_multi_factor_auth_config = json.loads(begin_multi_factor_auth_response.text)
 session_id, flow_token, client_request_id, contex = begin_multi_factor_auth_config.get("SessionId"), begin_multi_factor_auth_config.get("FlowToken"), begin_multi_factor_auth_config.get("CorrelationId"), begin_multi_factor_auth_config.get("Ctx")
 
 ## Complete Multi-Factor Authentication
-totp = pyotp.TOTP(totp_secret_key)
-totp_code = totp.now()
-end_multi_factor_auth_response = end_multi_factor_auth(ua.chrome, client_request_id, auth_method_id, api_canary, contex, flow_token, hpgact, hpgid, session_id, additional_auth_data=totp_code)
+mfa_code = ""
+
+if auth_method_id == "PhoneAppOTP":
+    # Generate time-based OTP using pyotp and totp secret key
+    totp = pyotp.TOTP(totp_secret_key)
+    mfa_code = totp.now()
+
+elif auth_method_id == "PhoneAppNotification":
+    # Poll until the authentication is approved
+    Print(f"Enter number {begin_multi_factor_auth_config.get("Entropy")} in Authenticator App.")
+    while True:
+        end_multi_factor_auth_response = end_multi_factor_auth(
+            ua.chrome,
+            client_request_id,
+            auth_method_id,
+            api_canary,
+            context,
+            flow_token,
+            hpgact,
+            hpgid,
+            session_id
+        )
+
+        response_json = end_multi_factor_auth_response.json()
+        if response_json.get("ResultValue") == "AuthenticationPending":
+            time.sleep(1)
+            continue
+        break
+
+    if not response_json.get("Success", False):
+        raise Exception("Multi-factor authentication with PhoneAppNotification failed or was denied.")
+
+else:
+    # Ask user for MFA manually
+    mfa_code = input("Enter your MFA code to sign in to your Microsoft account: ")
+
+
+end_multi_factor_auth_response = end_multi_factor_auth(ua.chrome, client_request_id, auth_method_id, api_canary, context, flow_token, hpgact, hpgid, session_id, additional_auth_data=mfa_code)
 end_multi_factor_auth_config = json.loads(end_multi_factor_auth_response.text)
-contex, flow_token = end_multi_factor_auth_config.get("Ctx"), end_multi_factor_auth_config.get("FlowToken")
+context, flow_token = end_multi_factor_auth_config.get("Ctx"), end_multi_factor_auth_config.get("FlowToken")
 
 # Application verification
-app_verification_response = app_verification(canary, contex, flow_token)
+app_verification_response = app_verification(canary, context, flow_token)
 
 # Get access token
-access_token_response = get_access_token(client_id, device_code)
+access_token_response = get_access_token(powershell_client_id, device_code)
 print(access_token_response.text)
