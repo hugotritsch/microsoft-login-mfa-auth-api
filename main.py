@@ -151,7 +151,7 @@ def end_multi_factor_auth(user_agent: str, client_request_id: str, auth_method_i
         client_request_id (str): Unique request ID for tracking.
         auth_method_id (str): The method of authentication.
         api_canary (str): Canary token for the session.
-        contex (str): Context ID for the session.
+        context (str): Context ID for the session.
         flow_token (str): Flow token for authentication.
         hpgact (int): HPGACT parameter for tracking.
         hpgid (int): HPGID parameter for tracking.
@@ -190,7 +190,7 @@ def app_verification(canary: str, context: str, flow_token: str) -> requests.Res
 
     Args:
         canary (str): Canary token for the session.
-        contex (str): Context ID for the session.
+        context (str): Context ID for the session.
         flow_token (str): Flow token for authentication.
 
     Returns:
@@ -267,7 +267,7 @@ ua = UserAgent()
 ## Begin multi-factor authentication
 begin_multi_factor_auth_response = begin_multi_factor_auth(ua.chrome, client_request_id, auth_method_id, api_canary, context, flow_token, hpgact, hpgid)
 begin_multi_factor_auth_config = json.loads(begin_multi_factor_auth_response.text)
-session_id, flow_token, client_request_id, contex = begin_multi_factor_auth_config.get("SessionId"), begin_multi_factor_auth_config.get("FlowToken"), begin_multi_factor_auth_config.get("CorrelationId"), begin_multi_factor_auth_config.get("Ctx")
+session_id, flow_token, client_request_id, context = begin_multi_factor_auth_config.get("SessionId"), begin_multi_factor_auth_config.get("FlowToken"), begin_multi_factor_auth_config.get("CorrelationId"), begin_multi_factor_auth_config.get("Ctx")
 
 ## Complete Multi-Factor Authentication
 mfa_code = ""
