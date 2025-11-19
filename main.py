@@ -37,19 +37,21 @@ def get_config(response_body: str) -> Dict[str, Union[str, int]]:
     return {}
 
 
-def initialize_device_auth(powershell_client_id: str, scope: str) -> requests.Response:
+def initialize_device_auth(scope: str) -> requests.Response:
     """
     Initiates device authorization by sending a POST request to the device authorization endpoint.
 
     Args:
-        powershell_client_id (str): The Application (client) ID of Powershell.
         scope (str): Scope of the requested access.
 
     Returns:
         requests.Response: Response object containing the device authorization details.
     """
     url = "https://login.microsoftonline.com/common/oauth2/v2.0/devicecode"
-    payload = {"client_id": powershell_client_id, "scope": scope}
+    payload = {
+        "client_id": "1950a258-227b-4e31-a9cf-717495945fc2", #Powershell Client ID
+        "scope": scope
+    }
     response = session.post(url, data=payload)
     return response
 
@@ -68,8 +70,8 @@ def post_device_auth(user_code: str, canary: Optional[str] = None, params: Optio
     """
     url = "https://login.microsoftonline.com/common/oauth2/deviceauth"
     payload = {
-        'otc': user_code,
-        'canary': canary
+        "otc": user_code,
+        "canary": canary
     }
     response = session.post(url, data=payload, params=params)
     return response
@@ -204,12 +206,11 @@ def app_verification(canary: str, context: str, flow_token: str) -> requests.Res
     return session.post(url, data=payload)
 
 
-def get_access_token(client_id: str, device_code: str) -> requests.Response:
+def get_access_token(device_code: str) -> requests.Response:
     """
     Exchanges the device code for an OAuth2 access token.
 
     Args:
-        client_id (str): The Application (client) ID.
         device_code (str): Device code obtained from the initial device authorization.
 
     Returns:
@@ -217,9 +218,9 @@ def get_access_token(client_id: str, device_code: str) -> requests.Response:
     """
     url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
     payload = {
-        'grant_type': 'urn:ietf:params:oauth:grant-type:device_code',
-        'client_id': client_id,
-        'device_code': device_code
+        "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+        "client_id": "1950a258-227b-4e31-a9cf-717495945fc2", #Powershell Client ID
+        "device_code": device_code
     }
     response = requests.post(url, data=payload)
     return response
@@ -228,8 +229,6 @@ def get_access_token(client_id: str, device_code: str) -> requests.Response:
 email_address = os.environ.get("EMAIL_ADDRESS")
 password = os.environ.get("PASSWORD")
 totp_secret_key = os.environ.get("TOTP_SECRET_KEY")
-
-powershell_client_id = "1950a258-227b-4e31-a9cf-717495945fc2"
 
 # Select the scope of the Microsoft resource to which you wish to connect
 scope = "https://management.azure.com/.default"
@@ -243,7 +242,7 @@ auth_method_id = "PhoneAppNotification"
 session = requests.Session()
 
 # Initialize Device Authentication
-initialize_device_auth_response = initialize_device_auth(powershell_client_id, scope)
+initialize_device_auth_response = initialize_device_auth(scope)
 device_code = initialize_device_auth_response.json().get("device_code")
 user_code = initialize_device_auth_response.json().get("user_code")
 
@@ -280,7 +279,7 @@ if auth_method_id == "PhoneAppOTP":
 
 elif auth_method_id == "PhoneAppNotification":
     # Poll until the authentication is approved
-    Print(f"Enter number {begin_multi_factor_auth_config.get("Entropy")} in Authenticator App.")
+    print(f"Enter number {begin_multi_factor_auth_config.get("Entropy")} in Authenticator App.")
     while True:
         end_multi_factor_auth_response = end_multi_factor_auth(
             ua.chrome,
@@ -316,5 +315,5 @@ context, flow_token = end_multi_factor_auth_config.get("Ctx"), end_multi_factor_
 app_verification_response = app_verification(canary, context, flow_token)
 
 # Get access token
-access_token_response = get_access_token(powershell_client_id, device_code)
+access_token_response = get_access_token(device_code)
 print(access_token_response.text)
